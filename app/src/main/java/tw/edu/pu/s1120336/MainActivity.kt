@@ -1,5 +1,6 @@
 package tw.edu.pu.s1120336
 
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,10 +21,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             S1120336Theme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+                    Start(m = Modifier.padding(innerPadding))
                 }
             }
         }
@@ -31,17 +30,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
+fun Start(m: Modifier) {
+
 }
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    S1120336Theme {
-        Greeting("Android")
-    }
-}
