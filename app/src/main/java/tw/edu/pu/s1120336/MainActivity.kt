@@ -11,20 +11,13 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,19 +26,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.LineHeightStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
-
-import androidx.compose.material3.Text // 導入正確的 Text 元件
 import kotlinx.coroutines.delay
-
+import kotlinx.coroutines.launch
 import tw.edu.pu.s1120336.ui.theme.S1120336Theme
 import java.time.format.TextStyle
-
-
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,67 +51,56 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun Start(m: Modifier) {
     val context = LocalContext.current
-    val screenWidth = LocalContext.current.resources.displayMetrics.widthPixels
-    val coroutineScope = rememberCoroutineScope()
-    var isSwiping by remember { mutableStateOf(false) }
 
-    // 定義背景顏色列表
+    // 背景顏色
     val colors = listOf(
-        Color(0xff95fe95), // 顏色 1
-        Color(0xfffdca0f), // 顏色 2
-        Color(0xfffea4a4), // 顏色 3
-        Color(0xffa5dfed)  // 顏色 4
+        Color(0xff95fe95),
+        Color(0xfffdca0f),
+        Color(0xfffea4a4),
+        Color(0xffa5dfed)
     )
 
-    // 當前背景顏色索引
-    var currentIndex by remember { mutableStateOf(0) }
+    var currentIndex by remember { mutableStateOf(0) } // Box 的背景顏色索引
+    var isSwiping by remember { mutableStateOf(false) }
+    var gameTime by remember { mutableStateOf(0) } // 遊戲持續時間
+    var mariaPosition by remember { mutableStateOf(0f) } // 瑪利亞水平位置
+    var mariaImageIndex by remember { mutableStateOf(0) } // 隨機生成瑪利亞圖片索引
+    var score by remember { mutableStateOf(0) } // 遊戲分數
 
-    // 計時器狀態
-    var elapsedTime by remember { mutableStateOf(0) } // 計時的秒數
-    var isGameRunning by remember { mutableStateOf(true) } // 遊戲進行狀態
+    val coroutineScope = rememberCoroutineScope()
+    var isGameRunning by remember { mutableStateOf(true) }
 
-    // 瑪利亞的位置
-    val mariaPositionX = remember { Animatable(0f) }
 
-    // 啟動計時器
+    // 啟動遊戲邏輯
     LaunchedEffect(isGameRunning) {
-        if (isGameRunning) {
-            while (true) {
-                kotlinx.coroutines.delay(1000) // 每秒計時
-                elapsedTime += 1
+        while (isGameRunning) { // 只有當遊戲正在運行時執行
+            gameTime += 1 // 每秒增加遊戲持續時間
+            mariaPosition += 50f // 瑪利亞每秒向右移動 50 像素
+            delay(1000L) // 等待 1 秒
+
+            if (mariaPosition >= 1080f) { // 當瑪利亞移出螢幕右側
+                isGameRunning = false // 停止遊戲邏輯
             }
         }
     }
 
-    // 移動瑪利亞
-    LaunchedEffect(isGameRunning) {
-        if (isGameRunning) {
-            while (mariaPositionX.value < screenWidth) {
-                mariaPositionX.animateTo(
-                    mariaPositionX.value + 50f,
-                    animationSpec = tween(durationMillis = 1000)
-                )
-            }
-            isGameRunning = false // 當移出螢幕右方時，遊戲結束
-        }
-    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors[currentIndex]) // 根據索引設置背景顏色
+            .background(colors[currentIndex])
             .pointerInput(Unit) {
                 detectHorizontalDragGestures { change, dragAmount ->
                     if (!isSwiping) {
                         isSwiping = true
-                        change.consume() // 消耗滑動事件
+                        change.consume()
+                        if (dragAmount > 0) {
+                            currentIndex = (currentIndex - 1 + colors.size) % colors.size
+                        } else if (dragAmount < 0) {
+                            currentIndex = (currentIndex + 1) % colors.size
+                        }
                         coroutineScope.launch {
-                            if (dragAmount > 0) { // 右滑
-                                currentIndex = (currentIndex - 1 + colors.size) % colors.size
-                            } else if (dragAmount < 0) { // 左滑
-                                currentIndex = (currentIndex + 1) % colors.size
-                            }
-                            delay(500) // 延遲一段時間
+                            delay(500)
                             isSwiping = false
                         }
                     }
@@ -135,13 +110,13 @@ fun Start(m: Modifier) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .align(Alignment.TopCenter)
+                .align(Alignment.Center)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = "2024期末上機考(資管二A楊靖惠)",
-                style = androidx.compose.ui.text.TextStyle(fontSize = 20.sp, color = Color.Black)
+                style = androidx.compose.ui.text.TextStyle(fontSize = 10.sp, color = Color.Black)
             )
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -156,21 +131,21 @@ fun Start(m: Modifier) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "遊戲持續時間 ${elapsedTime} 秒",
-                style = androidx.compose.ui.text.TextStyle(fontSize = 16.sp, color = Color.Black)
+                text = "遊戲持續時間 $gameTime 秒",
+                style = androidx.compose.ui.text.TextStyle(fontSize = 10.sp, color = Color.Black)
             )
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = if (isGameRunning) "您的成績計算中..." else "遊戲結束",
-                style = androidx.compose.ui.text.TextStyle(fontSize = 16.sp, color = Color.Black)
+                text = "您的成績 $score 分",
+                style = androidx.compose.ui.text.TextStyle(fontSize = 10.sp, color = Color.Black)
             )
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
                 onClick = {
                     val activity = context as? Activity
-                    activity?.finish() // 結束應用程式
+                    activity?.finish()
                 },
                 modifier = Modifier
                     .padding(top = 16.dp)
@@ -182,14 +157,35 @@ fun Start(m: Modifier) {
             }
         }
 
-        // 瑪利亞圖示
+        // 瑪利亞圖片
         Image(
-            painter = painterResource(id = R.drawable.maria2), // 確保圖片存在於 res/drawable 目錄下
-            contentDescription = "Maria Icon",
+            painter = painterResource(id = when (mariaImageIndex) {
+                0 -> R.drawable.maria0
+                1 -> R.drawable.maria1
+                2 -> R.drawable.maria2
+                else -> R.drawable.maria3
+            }), // 根據索引顯示不同圖片
+            contentDescription = "瑪利亞",
             modifier = Modifier
-                .size(200.dp) // 圖示大小
+                .width(200.dp)
+                .height(200.dp)
                 .align(Alignment.BottomStart)
-                .offset(x = mariaPositionX.value.dp, y = 0.dp) // 根據 X 軸位置移動
+                .offset(x = mariaPosition.dp, y = 0.dp)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onDoubleTap = {
+                            // 雙擊檢測
+                            if (currentIndex == mariaImageIndex) { // 背景顏色與圖片顏色索引相同
+                                score += 1
+                            } else {
+                                score -= 1
+                            }
+                            // 重置瑪利亞圖片
+                            mariaPosition = 0f
+                            mariaImageIndex = (0..3).random()
+                        }
+                    )
+                }
         )
     }
 }
